@@ -26,6 +26,8 @@ class Il2CppTracer {
 
     /** @internal */
     #parameterFilter?: (parameter: Il2Cpp.Parameter) => boolean;
+    
+    var showUpdate = true;
 
     domain(): FilterAssemblies {
         return this;
@@ -64,6 +66,17 @@ class Il2CppTracer {
     filterParameters(filter: (parameter: Il2Cpp.Parameter) => boolean): Pick<Il2Cpp.Tracer, "and"> {
         this.#parameterFilter = filter;
         return this;
+    }
+
+    hideUpdate() {
+        this.showUpdate = false;
+        return this;
+    }
+
+    checkUpdate(str) {
+        if(str === "Update" && this.showUpdate == false)
+            return false;
+        return true;
     }
 
     and(): ReturnType<typeof Il2Cpp["trace"]> & Pick<Il2Cpp.Tracer, "attach"> {
@@ -175,12 +188,14 @@ class Il2CppTracer {
                     const thisParameter = target.isStatic ? undefined : new Il2Cpp.Parameter("this", -1, target.class.type);
                     const parameters = thisParameter ? [thisParameter].concat(target.parameters) : target.parameters;
 
+                    if(checkUpdate(target.name))
                     inform(`\
 ${offset} ${`│ `.repeat(count++)}┌─\x1b[35m${fullName}\x1b[0m(\
 ${parameters.map(e => `\x1b[32m${e.name}\x1b[0m = \x1b[31m${fromFridaValue(args[e.position + startIndex], e.type)}\x1b[0m`).join(`, `)});`);
 
                     const returnValue = target.nativeFunction(...args);
 
+                    if(checkUpdate(target.name))
                     inform(`\
 ${offset} ${`│ `.repeat(--count)}└─\x1b[33m${fullName}\x1b[0m\
 ${returnValue == undefined ? `` : ` = \x1b[36m${fromFridaValue(returnValue, target.returnType)}`}\x1b[0m;`);
